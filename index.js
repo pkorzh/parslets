@@ -55,7 +55,10 @@ var ParsletCombinator = module.exports.ParsletCombinator = function() {
 		},
 		eof: function() {
 			return combinator.tokens.index >= combinator.tokens.length;
-		}
+		},
+		rewind: function() {
+			combinator.tokens.index--;	
+		},
 	}
 };
 
@@ -67,9 +70,14 @@ ParsletCombinator.prototype.parse = function(tokens) {
 
 	for (var i = 0; i < this.parslets.length; i++) {
 		try{
-			return this.parslets[i].apply(this.parsletContext);
+			var obj = this.parslets[i].apply(this.parsletContext);
+
+			if (obj instanceof ParsletCombinator) {
+				return obj.parse(this.tokens);
+			} else {
+				return obj;
+			}
 		} catch(e) {
-			console.log(e)
 			this.tokens.index = index;
 		}
 	}
@@ -113,47 +121,86 @@ var positionalArgumentsParslet = module.exports.positionalArgumentsParslet = fun
 	return arguments;
 };
 
-var additiveExpressionParslet = module.exports.additiveExpressionParslet = function() {
-    var expr = this.consume(multiplicativeExpressionParslet);
-
-    while(!this.eof() && ['+', '-'].indexOf(this.peek().lexeme) !== -1) {
-        expr = {
-            left: expr,
-            operator: this.consume(':operator'),
-            right: this.consume(multiplicativeExpressionParslet)
-        }
-    }
-
-    return expr;
+var lValueParslet = module.exports.lValueParslet = function() {
+	return new ParsletCombinator(function() {
+		return this.consume(':decimalLiteral');
+	}, function() {
+		return this.consume(':stringLiteral');
+	}, function() {
+		return this.consume(':identifier');
+	});
 };
 
-var multiplicativeExpressionParslet = module.exports.multiplicativeExpressionParslet = function() {
-    var expr = this.consume(unaryExpressionParslet);
-
-    while(!this.eof() &&['*', '/'].indexOf(this.peek().lexeme) !== -1) {
-        expr = {
-            left: expr,
-            operator: this.consume(':operator'),
-            right: this.consume(unaryExpressionParslet)
-        }
-    }
-
-    return expr;
+var rValueParslet = module.exports.lValueParslet = function() {
 };
 
-var unaryExpressionParslet = module.exports.unaryExpressionParslet = function() {
-    var op = this.consumeIf(':operator');
+var arith = module.exports.arith = function(options) {
+	options.postfixOps = options.postfixOps || ['++', '--'];
+	options.unaryOps = options.unaryOps || ['++', '--'];
 
-    if (op) {
-    	return {
-    		op: op,
-    		expr: this.consume(unaryExpressionParslet)
-    	};
-    } else {
-    	return this.consume(postfixExpressionParslet);
-    }
-};
+	var root = {};
 
-var postfixExpressionParslet = module.exports.postfixExpressionParslet = function() {
-	return this.consume(':decimalLiteral');
-};
+	var additiveExpressionParslet = root.additiveExpressionParslet = function() {
+		var expr = this.consume(multiplicativeExpressionParslet);
+
+		while(!this.eof() && ['+', '-'].indexOf(this.peek().lexeme) !== -1) {
+			expr = {
+				type: 'binary',
+				left: expr,
+				op: this.consume(':operator'),
+				right: this.consume(multiplicativeExpressionParslet)
+			}
+		}
+
+		this.consumeIf(';')
+
+		return expr;
+	};
+
+	var multiplicativeExpressionParslet = root.multiplicativeExpressionParslet = function() {
+		var expr = this.consume(unaryExpressionParslet);
+
+		while(!this.eof() &&['*', '/'].indexOf(this.peek().lexeme) !== -1) {
+			expr = {
+				type: 'binary',
+				left: expr,
+				op: this.consume(':operator'),
+				right: this.consume(unaryExpressionParslet)
+			}
+		}
+
+		return expr;
+	};
+
+	var unaryExpressionParslet = root.unaryExpressionParslet = function() {
+		var op = this.consumeIf(':operator');
+
+		if (op) {
+			return {
+				type: 'unary',
+				op: op,
+				expr: this.consume(unaryExpressionParslet)
+			};
+		} else {
+			return this.consume(postfixExpressionParslet);
+		}
+	};
+
+	var postfixExpressionParslet = root.postfixExpressionParslet = function() {
+		var expr = this.consume(lValueParslet);
+		var op = this.consumeIf(':operator');
+
+		if (op && options.postfixOps.indexOf(op.lexeme) !== -1) {
+			return {
+				type: 'postfix',
+				op: op,
+				expr: expr
+			}
+		} else {
+			this.rewind();
+			return expr;
+		}
+	};
+
+	return root;
+}
