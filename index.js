@@ -93,7 +93,7 @@ var namedArgumentsParslet = module.exports.namedArgumentsParslet = function() {
 			value = null;
 
 		if (this.consumeIf(':')) {
-			value = this.consume(':decimalLiteral');
+			value = this.consume(lValueParslet);
 		}
 
 		arguments.push({
@@ -113,7 +113,7 @@ var positionalArgumentsParslet = module.exports.positionalArgumentsParslet = fun
 	this.consume('(');
 
 	while(!this.consumeIf(')')) {
-		arguments.push(this.consume(':decimalLiteral'));
+		arguments.push(this.consume(lValueParslet));
 
 		this.consumeIf(',');
 	}
@@ -197,7 +197,6 @@ var arith = module.exports.arith = function(options) {
 				expr: expr
 			}
 		} else {
-			this.rewind();
 			return expr;
 		}
 	};
