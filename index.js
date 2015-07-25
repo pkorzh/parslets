@@ -24,6 +24,10 @@ TokenWrapper.prototype.eof = function() {
 TokenWrapper.prototype.consume = function(form) {
 	var args = Array.prototype.slice.call(arguments);
 
+	if (this.eof()) {
+		throw new ParsletError();
+	}
+
 	if (typeof form === 'undefined') {
 		return this.tokens[this.pos++];
 	} else if (typeof form === 'string') {
