@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:pkorzh/parslets.gitss"
+    "url": "git@github.com:pkorzh/parslets.git"
   },
   "author": "Platon Korzh <platon@korzh.io>",
   "license": "ISC",
