@@ -32,7 +32,7 @@ Consumes arith expression.
 ###Parsing arith expressions
 
 	var util     = require('util');
-	var parslets = require('./index');
+	var parslets = require('parslets');
 	var toker    = require('toker');
 	var lex      = new toker.LexicalAnalyzer('2 + 2 * -2');
 
