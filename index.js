@@ -46,17 +46,19 @@ TokenWrapper.prototype.consume = function(form) {
 		}
 
 	} else if (typeof form === 'function') {
-		this.mark();
-
 		for (var i = 0; i < args.length; i++) {
+			var index;
+
 			try {
+				index = this.pos;
+
 				return args[i].apply(this);
 			} catch(e) {
 				if (e instanceof ParsletError) {
-					this.restore();
+					this.pos = index;
 
-					if (i === args.length -1) {
-						throw e;
+					if (i == args.length -1) {
+						throw e;	
 					}
 				} else {
 					throw e;
@@ -66,14 +68,14 @@ TokenWrapper.prototype.consume = function(form) {
 	}
 };
 
-TokenWrapper.prototype.consumeIf = function(form) {
-	this.mark();
+TokenWrapper.prototype.consumeIf = function() {
+	var index = this.pos;
 
 	try {
-		return this.consume(form);
+		return this.consume.apply(this, Array.prototype.slice.call(arguments));
 	} catch(e) {
 		if (e instanceof ParsletError) {
-			this.restore();
+			this.pos = index;
 
 			return null;
 		} else {
@@ -82,11 +84,11 @@ TokenWrapper.prototype.consumeIf = function(form) {
 	}
 };
 
-TokenWrapper.prototype.is = function(form) {
-	this.mark();
+TokenWrapper.prototype.is = function() {
+	var index = this.pos;
 
 	try {
-		this.consume(form);
+		this.consume.apply(this, Array.prototype.slice.call(arguments));
 	} catch(e) {
 		if (e instanceof ParsletError) {
 			return false;
@@ -94,18 +96,10 @@ TokenWrapper.prototype.is = function(form) {
 			throw e;
 		}
 	} finally {
-		this.restore();
+		this.pos = index;
 	}
 
 	return true;
-};
-
-TokenWrapper.prototype.mark = function() {
-	this.stack.unshift(this.pos);
-};
-
-TokenWrapper.prototype.restore = function() {
-	this.pos = this.stack.shift();
 };
 
 var lValue = module.exports.lValue = function() {
@@ -122,16 +116,33 @@ var rValue = module.exports.rValue = function() {
 	return this.consume(':identifier');
 };
 
-var sequence = module.exports.sequence = function(skip, parslet) {
+var sequence = module.exports.sequence = function(parslet) {
+	return function() {
+		var sequence = [],
+			item;
+
+		while(item = this.consumeIf(parslet)) {
+			sequence.push(item);
+		}
+
+		if (!sequence.length) {
+			throw new ParsletError();
+		}
+
+		return sequence;
+	}
+};
+
+var search = module.exports.search = function(parslet) {
 	return function() {
 		var sequence = [],
 			item;
 
 		while(!this.eof()) {
-			item = this[skip ? 'consumeIf' : 'consume'](parslet);
+			item = this.consumeIf(parslet);
 
 			if (item) {
-				sequence.push(item)
+				sequence.push(item);
 			} else {
 				this.consume();
 			}
@@ -157,7 +168,7 @@ var formalArgs = module.exports.formalArgs = function() {
 		this.consumeIf(',');
 
 		arguments.push({
-			argument: argument,
+			name: argument,
 			defaultValue: defaultValue
 		});
 	}
@@ -171,7 +182,7 @@ var actualArgs = module.exports.actualArgs = function(options) {
 	this.consume('(');
 
 	while(!this.consumeIf(')')) {
-		arguments.push({argument: this.consume(arith(options))});
+		arguments.push(this.consume(arith(options)));
 
 		this.consumeIf(',');
 	}
@@ -217,7 +228,7 @@ var arith = module.exports.arith = function(options) {
 	var unaryExpression = function() {
 		var op = this.consumeIf(':operator');
 
-		this.mark();
+		var index = this.pos;
 
 		if (op) {
 			if (options.unaryOps.indexOf(op.lexeme) !== -1) {
@@ -227,7 +238,7 @@ var arith = module.exports.arith = function(options) {
 					expr: this.consume(unaryExpression)
 				};
 			} else {
-				this.restore();
+				this.pos = index;
 			}
 		}
 
@@ -241,10 +252,10 @@ var arith = module.exports.arith = function(options) {
 			expr = this.consume(additiveExpression);
 			this.consume(')');
 		} else {
-			expr = this.consume(lValueParslet);
+			expr = this.consume(lValue);
 		}
 
-		this.mark();
+		var index = this.pos;
 
 		if (op = this.consumeIf(':operator')) {
 			if (options.postfixOps.indexOf(op.lexeme) !== -1) {
@@ -254,7 +265,7 @@ var arith = module.exports.arith = function(options) {
 					expr: expr
 				}
 			} else {
-				this.restore();
+				this.pos = index;
 			}
 		}
 
