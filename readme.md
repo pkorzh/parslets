@@ -2,19 +2,19 @@
 
 ##Parslets
 
-`partlets.lValueParslet`
+`partlets.lValue`
 
 Consumes identifier or literal.
 
-`partlets.rValueParslet`
+`partlets.rValue`
 
 Consumes identifier.
 
-`partlets.formalArgsParslet`
+`partlets.formalArgs`
 
 Consumes formal arguments list.
 
-`parslets.actualArgsParslet`
+`parslets.actualArgs`
 
 Consumes actual arguments list.
 

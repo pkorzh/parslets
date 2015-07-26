@@ -108,7 +108,7 @@ TokenWrapper.prototype.restore = function() {
 	this.pos = this.stack.shift();
 };
 
-var lValueParslet = module.exports.lValueParslet = function() {
+var lValueParslet = module.exports.lValue = function() {
 	return this.consume(function() {
 		return this.consume(':decimalLiteral');
 	}, function() {
@@ -118,11 +118,11 @@ var lValueParslet = module.exports.lValueParslet = function() {
 	});
 };
 
-var rValueParslet = module.exports.rValueParslet = function() {
+var rValueParslet = module.exports.rValue = function() {
 	return this.consume(':identifier');
 };
 
-var sequenceParslet = module.exports.sequenceParslet = function(skip, parslet) {
+var sequenceParslet = module.exports.sequence = function(skip, parslet) {
 	return function() {
 		var sequence = [],
 			item;
@@ -141,7 +141,7 @@ var sequenceParslet = module.exports.sequenceParslet = function(skip, parslet) {
 	};
 };
 
-var formalArgsParslet = module.exports.formalArgsParslet = function() {
+var formalArgsParslet = module.exports.formalArgs = function() {
 	var arguments = [];
 
 	this.consume('(');
@@ -151,7 +151,7 @@ var formalArgsParslet = module.exports.formalArgsParslet = function() {
 			defaultValue;
 
 		if (this.consumeIf(':')) {
-			defaultValue = this.consume(lValueParslet);
+			defaultValue = this.consume(lValue);
 		}
 
 		this.consumeIf(',');
@@ -165,7 +165,7 @@ var formalArgsParslet = module.exports.formalArgsParslet = function() {
 	return arguments;
 };
 
-var actualArgsParslet = module.exports.actualArgsParslet = function(options) {
+var actualArgsParslet = module.exports.actualArgs = function(options) {
 	var arguments = [];
 
 	this.consume('(');
@@ -184,37 +184,37 @@ var arith = module.exports.arith = function(options) {
 	options.postfixOps = options.postfixOps || ['++', '--'];
 	options.unaryOps = options.unaryOps || ['++', '--', '+', '-'];
 
-	var additiveExpressionParslet = function() {
-		var expr = this.consume(multiplicativeExpressionParslet);
+	var additiveExpression = function() {
+		var expr = this.consume(multiplicativeExpression);
 
 		while(!this.eof() && ['+', '-'].indexOf(this.peek().lexeme) !== -1) {
 			expr = {
 				type: 'binary',
 				left: expr,
 				op: this.consume(':operator'),
-				right: this.consume(multiplicativeExpressionParslet)
+				right: this.consume(multiplicativeExpression)
 			}
 		}
 
 		return expr;
 	};
 
-	var multiplicativeExpressionParslet = function() {
-		var expr = this.consume(unaryExpressionParslet);
+	var multiplicativeExpression = function() {
+		var expr = this.consume(unaryExpression);
 
 		while(!this.eof() &&['*', '/'].indexOf(this.peek().lexeme) !== -1) {
 			expr = {
 				type: 'binary',
 				left: expr,
 				op: this.consume(':operator'),
-				right: this.consume(unaryExpressionParslet)
+				right: this.consume(unaryExpression)
 			}
 		}
 
 		return expr;
 	};
 
-	var unaryExpressionParslet = function() {
+	var unaryExpression = function() {
 		var op = this.consumeIf(':operator');
 
 		this.mark();
@@ -224,21 +224,21 @@ var arith = module.exports.arith = function(options) {
 				return {
 					type: 'unary',
 					op: op,
-					expr: this.consume(unaryExpressionParslet)
+					expr: this.consume(unaryExpression)
 				};
 			} else {
 				this.restore();
 			}
 		}
 
-		return this.consume(postfixExpressionParslet);
+		return this.consume(postfixExpression);
 	};
 
-	var postfixExpressionParslet = function() {
+	var postfixExpression = function() {
 		var expr, op;
 
 		if (this.consumeIf('(')) {
-			expr = this.consume(additiveExpressionParslet);
+			expr = this.consume(additiveExpression);
 			this.consume(')');
 		} else {
 			expr = this.consume(lValueParslet);
@@ -262,6 +262,6 @@ var arith = module.exports.arith = function(options) {
 	};
 
 	return function() {
-		return this.consume(additiveExpressionParslet);
+		return this.consume(additiveExpression);
 	};
 };
