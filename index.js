@@ -108,7 +108,7 @@ TokenWrapper.prototype.restore = function() {
 	this.pos = this.stack.shift();
 };
 
-var lValueParslet = module.exports.lValue = function() {
+var lValue = module.exports.lValue = function() {
 	return this.consume(function() {
 		return this.consume(':decimalLiteral');
 	}, function() {
@@ -118,11 +118,11 @@ var lValueParslet = module.exports.lValue = function() {
 	});
 };
 
-var rValueParslet = module.exports.rValue = function() {
+var rValue = module.exports.rValue = function() {
 	return this.consume(':identifier');
 };
 
-var sequenceParslet = module.exports.sequence = function(skip, parslet) {
+var sequence = module.exports.sequence = function(skip, parslet) {
 	return function() {
 		var sequence = [],
 			item;
@@ -141,7 +141,7 @@ var sequenceParslet = module.exports.sequence = function(skip, parslet) {
 	};
 };
 
-var formalArgsParslet = module.exports.formalArgs = function() {
+var formalArgs = module.exports.formalArgs = function() {
 	var arguments = [];
 
 	this.consume('(');
@@ -165,7 +165,7 @@ var formalArgsParslet = module.exports.formalArgs = function() {
 	return arguments;
 };
 
-var actualArgsParslet = module.exports.actualArgs = function(options) {
+var actualArgs = module.exports.actualArgs = function(options) {
 	var arguments = [];
 
 	this.consume('(');
