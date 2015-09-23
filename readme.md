@@ -25,7 +25,37 @@ Options:
 - postfixOps
 - unaryOps
 
+`parslets.sequence`
+
+Returns a function that can be consumed. Usefull to parse list items to a list
+
+`parslets.search`
+
+Scans input stream for sucessfull consume. Ignorign the rest. Usefull when you need to extract only specific nodes
+
+
 Consumes arith expression.
+
+#Token wrapper
+
+`consume(form)`
+
+Consumes a token from input stream if it is satisfied by *form* criteria
+
+If string, passed as a parameter, starts with `:`, method will consume a token with specified tag, otherwise &mdash; with specified lexeme.
+
+It is possible to pass a list of functions. They will be executed in a row, if neither will return a successfull consume an error wil be thrown.
+
+`consumeIf(form)`
+
+same as `consume(form)`, but will not throw an error
+
+`is(form)`
+
+checks if current token match the criteria
+
+
+
 
 ##Example
 
